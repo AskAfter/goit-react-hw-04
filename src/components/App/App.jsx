@@ -1,71 +1,91 @@
 import { useState, useEffect } from 'react';
-import './App.module.css';
-import initialContacts from '../../contacts.json';
-import ContactForm from '../ContactForm/ContactForm';
-import ContactList from '../ContactList/ContactList';
-import SearchBox from '../SearchBox/SearchBox';
 import s from './App.module.css';
-import { ImShocked } from 'react-icons/im';
+import ImageGallery from '../ImageGallery/ImageGallery';
+import SearchBar from '../SearchBar/SearchBar';
+import LoadMoreBtn from '../LoadMoreBtn/LoadMoreBtn';
+import Loader from '../Loader/Loader';
+import ImageModal from '../ImageModal/ImageModal';
+import fetchImages from '../../services/api';
+import ErrorMessage from '../ErrorMessage/ErrorMessage';
 
 function App() {
-  const [contacts, setContacts] = useState(initialContacts);
-  const [filter, setFilter] = useState('');
-  const initialValues = { name: '', number: '' };
-  const handleSubmit = (values, actions) => {
-    const isContactExist = contacts.some(
-      contact => contact.name === values.name
-    );
-    if (isContactExist) {
-      alert(`${values.name} is already in contacts`);
-      return;
-    }
-    const newContact = {
-      id: crypto.randomUUID(),
-      name: values.name,
-      number: values.number,
-    };
-    setContacts(prevState => [newContact, ...prevState]);
-    actions.resetForm();
-  };
-  const filterContact = contacts.filter(contact =>
-    contact.name.toLowerCase().includes(filter.toLowerCase())
-  );
-  const deleteContact = contactId => {
-    setContacts(contacts =>
-      contacts.filter(contact => contact.id !== contactId)
-    );
-  };
+  const [images, setImages] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isError, setError] = useState(false);
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(null);
 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+
+  const handleClick = () => {
+    if (page < totalPages) {
+      setPage(prev => prev + 1);
+    }
+  };
   useEffect(() => {
-    try {
-      const contacts = localStorage.getItem('contacts');
-      const parsedContacts = JSON.parse(contacts);
-      if (parsedContacts) {
-        setContacts(parsedContacts);
+    if (!query) return;
+    const getImages = async () => {
+      try {
+        setIsLoading(true);
+        const data = await fetchImages(query, page);
+        setTotalPages(data.total_pages);
+        setImages(prev => [...prev, ...data.results]);
+        setError(false);
+      } catch {
+        setError(true);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Error reading from localStorage', error);
-    }
-  }, []);
+    };
+    getImages();
+  }, [query, page]);
 
   useEffect(() => {
-    if (contacts !== initialContacts) {
-      localStorage.setItem('contacts', JSON.stringify(contacts));
+    if (page === 1) return;
+
+    const gallery = document.querySelector('#image-gallery'); // Отримуємо галерею
+    if (gallery) {
+      const cardHeight =
+        gallery.firstElementChild?.getBoundingClientRect().height || 0;
+      window.scrollBy({
+        top: cardHeight * 2,
+        behavior: 'smooth',
+      });
     }
-  }, [contacts]);
+  }, [images, page]);
+
+  const handleSubmit = newQuery => {
+    setQuery(newQuery);
+    setImages([]);
+    setPage(1);
+  };
+
+  const openModal = image => {
+    setSelectedImage(image);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setSelectedImage(null);
+    setIsModalOpen(false);
+  };
 
   return (
     <div className={s.container}>
-      <h1 className={s.header}>PhoneBook</h1>
-      <ContactForm initialValues={initialValues} submit={handleSubmit} />
-      <SearchBox filter={filter} onFilter={setFilter} />
-      {filterContact.length > 0 ? (
-        <ContactList initialContacts={filterContact} onDelete={deleteContact} />
-      ) : (
-        <h2 className={s.nothingFound}>
-          Nothing found <ImShocked className={s.icon} />{' '}
-        </h2>
+      {!isModalOpen && <SearchBar onSubmit={handleSubmit} />}
+      <ImageGallery images={images} onImageClick={openModal} />
+      {isLoading && <Loader />}
+      {isError && <ErrorMessage />}
+      {page < totalPages && !isError && (
+        <LoadMoreBtn handleClick={handleClick} />
       )}
+      <ImageModal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        image={selectedImage}
+      />
     </div>
   );
 }

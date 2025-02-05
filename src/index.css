@@ -12,14 +12,16 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   --backGroundColor: wheat;
-  --sectionColors: whitesmoke;
+  --backGroundColorDark: #1f4564;
+  --sectionColors: #130d11;
   --buttonColor: #646cff;
-  --shadow: 0 10px 15px rgba(0, 0, 0, 0.2), 0 4px 6px rgba(0, 0, 0, 0.1);
+  --elementsColor: #226265;
+  --shadow: 0 10px 15px rgba(173, 173, 173, 0.2), 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 body {
   font-family: sans-serif;
   line-height: 1.5;
-  background-color: white;
+  background-color: var(--backGroundColorDark);
 }
 
 h1,
@@ -75,12 +77,13 @@ button {
   font-family: inherit;
   background-color: var(--buttonColor);
   cursor: pointer;
-  color: var(--sectionColors);
+  color: var(--backGroundColor);
   transition: border-color 0.25s;
   box-shadow: var(--shadow);
   transition: transform 0.25s, border-color 0.25s;
 }
 button:hover,
 button:focus {
-  transform: scale(1.1);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);
 }
